@@ -35,14 +35,13 @@ def construct_avg_rat(df_ur_rat, mandatery_flash=False):
         rat_n = 0
         rat_cnt = 0
 
-
         for index in range(0, cnt):
             if uid[index] == uid_n:
                 rat_n += rat[index]
                 rat_cnt += 1
 
             else:
-                # store a list of related info
+                # store a list of related info : avg_rat, rat_cnt
                 avg_rat[uid_n] = [round(1.*rat_n / rat_cnt, 2), rat_cnt]
                 uid_n = uid[index]
                 rat_n = rat[index]
@@ -58,8 +57,34 @@ def construct_avg_rat(df_ur_rat, mandatery_flash=False):
         return 0
 
 
-def factory(src_dir):
+def factor_builder(rat, mvs):
+    fb = {}
 
+    mvs_cnt = mvs.movieId.unique().size
+    fb['mvs_cnt'] = mvs_cnt
+
+    usr_cnt = rat.userId.unique().size
+    fb['usr_cnt'] = usr_cnt
+
+    rat_cnt = rat.rating.size
+    fb['rat_cnt'] = rat_cnt
+    return fb
+
+
+def represent_matrix_builder(rat, factor, dic_avg):
+    repm = np.zeros((factor['usr_cnt'], factor['mvs_cnt']))
+    for index in range(factor['rat_cnt']):
+        print rat.userId[index], rat.movieId[index], rat.rating[index],
+        print 'rating computed:',
+        res = (rat.rating[index] - dic_avg[rat.userId[index]][0])  # real like rate
+        print res
+        if index>20:
+            break
+
+
+
+
+def factory(src_dir):
     ratingReader = pd.read_csv(src_dir + 'ratings.csv', header=0)
     movieReader = pd.read_csv(src_dir + 'movies.csv')
 
@@ -76,7 +101,10 @@ if __name__ == '__main__':
     l_src_dir = './ml-latest-small/ml-latest-small/'
     ratings = pd.read_csv(l_src_dir + 'ratings.csv', header=0)
     movies = pd.read_csv(l_src_dir + 'movies.csv', header=0)
+
     avg = construct_avg_rat(ratings)
+    factors = factor_builder(ratings, movies)
+    represent_matrix_builder(ratings, factors, avg)
 
 
 
