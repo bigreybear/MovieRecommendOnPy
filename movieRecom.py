@@ -28,6 +28,7 @@ def construct_avg_rat(df_ur_rat, mandatery_flash=False):
         ###
         uid, rat = df_ur_rat.userId.values, df_ur_rat.rating.values
         cnt = df_ur_rat.userId.size
+        print 'inside cnt:', cnt
         print df_ur_rat.userId.index.min
 
         avg_rat = {}
@@ -47,8 +48,8 @@ def construct_avg_rat(df_ur_rat, mandatery_flash=False):
                 rat_n = rat[index]
                 rat_cnt = 1
 
-        for row in avg_rat:
-            print row, avg_rat[row]
+        # for row in avg_rat:
+        #     print row, avg_rat[row]
 
         ###
         ###
@@ -117,7 +118,7 @@ def represent_matrix_builder(rat, factor, dic_avg, mad_fla=False):
             print 'processed:', index
 
         print rat.userId[index], rat.movieId[index], rat.rating[index],
-
+        print dic_avg[671]
         print dic_avg[rat.userId[index]]
         print 'rating computed:',
         rlr = (rat.rating[index] - dic_avg[rat.userId[index]][0])  # real like rate
@@ -174,9 +175,30 @@ if __name__ == '__main__':
     ratings = pd.read_csv(l_src_dir + 'ratings.csv', header=0)
     movies = pd.read_csv(l_src_dir + 'movies.csv', header=0)
 
-    avg = construct_avg_rat(ratings)
+    avg = construct_avg_rat(ratings, True)
     factors = factor_builder(ratings, movies)
-    represent_matrix_builder(ratings, factors, avg)
+    # represent_matrix_builder(ratings, factors, avg)
+    print 'test output'
+    print avg[670]
 
+    rec = []
+    ind = 1
+    for rr in ratings.userId.values:
+
+        if rr != ind:
+            rec.append(rr)
+            ind += 1
+            if rr != ind:
+                pass
+                # print ind,
+
+    # print len(rec)
+    # print range(1, 671)
+    for i in range(1, 671):
+        if i != rec[i-1]:
+            pass
+            # print i, rec[i-1]
+
+    print rec[0], rec[670]
 
 
