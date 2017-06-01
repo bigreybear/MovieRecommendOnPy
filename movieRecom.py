@@ -111,14 +111,17 @@ def represent_matrix_builder(rat, factor, dic_avg, mad_fla=False):
     pro_ing_uid = 0
     ready_to_merge = False
     ur_list = []
-    for index in range(factor['rat_cnt']):
+    for index in range(99800, factor['rat_cnt']):
         # show the progress
         if index%100 == 0:
             print 'processed:', index
 
-        # print rat.userId[index], rat.movieId[index], rat.rating[index],
-        # print 'rating computed:',
+        print rat.userId[index], rat.movieId[index], rat.rating[index],
+
+        print dic_avg[rat.userId[index]]
+        print 'rating computed:',
         rlr = (rat.rating[index] - dic_avg[rat.userId[index]][0])  # real like rate
+        print rlr
         # fill list of user-rat
         if pro_ing_uid != rat.userId[index]:
             # print ur_list
