@@ -11,7 +11,9 @@ except ImportError:
     import pickle
 
 
-def construct_avg_rat(df_ur_rat, mandatery_flash=False):
+def construct_avg_rat(df_ur_rat, factor, mandatery_flash=False):
+    # now it can handle 671 correctly
+    # avg_rat is a list indexed by index of userId, content is avg and cnt
     pio_str = 'hello world'
     if os.path.isfile('mid-data/avg_rat.dat') and not mandatery_flash:
         f = open('mid-data/avg_rat.dat', 'rb')
@@ -22,6 +24,7 @@ def construct_avg_rat(df_ur_rat, mandatery_flash=False):
         f.close()
         return avg_dat
     else:
+        usr_ind = factor['index_userId']
         print 'its a new mid-data avg_rat'
         f = open('mid-data/avg_rat.dat', 'wb')
         ###
@@ -29,30 +32,23 @@ def construct_avg_rat(df_ur_rat, mandatery_flash=False):
         uid, rat = df_ur_rat.userId.values, df_ur_rat.rating.values
         cnt = df_ur_rat.userId.size
         print 'inside cnt:', cnt
-        print df_ur_rat.userId.index.min
 
         avg_rat = {}
-        uid_n = 1
-        rat_n = 0
-        rat_cnt = 0
+        uid_n = usr_ind.index(uid[0])  # order of the userId
+        rat_n = 0  # sum of rat during this user
+        rat_cnt = 0  # count of rats during this user
 
         for index in range(0, cnt):
-            if uid[index] == uid_n:
+            if uid[index] == usr_ind[uid_n]:
                 rat_n += rat[index]
                 rat_cnt += 1
-
-            else:
+            if (uid[index] != usr_ind[uid_n]) or (index == cnt-1):
                 # store a list of related info : avg_rat, rat_cnt
-                avg_rat[uid_n] = [round(1.*rat_n / rat_cnt, 2), rat_cnt]
-                uid_n = uid[index]
+                avg_rat[usr_ind[uid_n]] = [round(1.*rat_n / rat_cnt, 2), rat_cnt]
+                uid_n = usr_ind.index(uid[index])
                 rat_n = rat[index]
                 rat_cnt = 1
 
-        # for row in avg_rat:
-        #     print row, avg_rat[row]
-
-        ###
-        ###
         pickle.dump(avg_rat, f)
         f.close()
         return avg_rat
@@ -60,7 +56,6 @@ def construct_avg_rat(df_ur_rat, mandatery_flash=False):
 
 def factor_builder(rat, mvs):
     fb = {}
-
 
     mvs_cnt = mvs.movieId.unique().size
     fb['mvs_cnt'] = mvs_cnt
@@ -75,6 +70,18 @@ def factor_builder(rat, mvs):
 
     usr_cnt = rat.userId.unique().size
     fb['usr_cnt'] = usr_cnt
+
+    # content is userId
+    # order is the index of user appeared in csv (for avg_rat)
+    raws_m_m = rat.userId
+    index_userId = [0] * usr_cnt
+    e_index = 0
+    index_userId[e_index] = raws_m_m[0]
+    for index in range(len(raws_m_m)):
+        if index_userId[e_index] != raws_m_m[index]:
+            e_index += 1
+            index_userId[e_index] = raws_m_m[index]
+    fb['index_userId'] = index_userId
 
     rat_cnt = rat.rating.size
     fb['rat_cnt'] = rat_cnt
@@ -156,7 +163,6 @@ def represent_matrix_builder(rat, factor, dic_avg, mad_fla=False):
     return repm
 
 
-
 def factory(src_dir):
     ratingReader = pd.read_csv(src_dir + 'ratings.csv', header=0)
     movieReader = pd.read_csv(src_dir + 'movies.csv')
@@ -175,30 +181,34 @@ if __name__ == '__main__':
     ratings = pd.read_csv(l_src_dir + 'ratings.csv', header=0)
     movies = pd.read_csv(l_src_dir + 'movies.csv', header=0)
 
-    avg = construct_avg_rat(ratings, True)
     factors = factor_builder(ratings, movies)
+    avg = construct_avg_rat(ratings, factors)
+    print avg
+
+    # for rr in factors['index_userId']:
+    #     print rr, factors['index_userId'].index(rr)
     # represent_matrix_builder(ratings, factors, avg)
-    print 'test output'
-    print avg[670]
-
-    rec = []
-    ind = 1
-    for rr in ratings.userId.values:
-
-        if rr != ind:
-            rec.append(rr)
-            ind += 1
-            if rr != ind:
-                pass
-                # print ind,
-
-    # print len(rec)
-    # print range(1, 671)
-    for i in range(1, 671):
-        if i != rec[i-1]:
-            pass
-            # print i, rec[i-1]
-
-    print rec[0], rec[670]
+    # print 'test output'
+    # print avg[670]
+    #
+    # rec = []
+    # ind = 1
+    # for rr in ratings.userId.values:
+    #
+    #     if rr != ind:
+    #         rec.append(rr)
+    #         ind += 1
+    #         if rr != ind:
+    #             pass
+    #             # print ind,
+    #
+    # # print len(rec)
+    # # print range(1, 671)
+    # for i in range(1, 671):
+    #     if i != rec[i-1]:
+    #         pass
+    #         # print i, rec[i-1]
+    #
+    # print rec[0], rec[670]
 
 
