@@ -61,8 +61,10 @@ if __name__ == '__main__':
 
     print ratings.rating.size
 
-    a = [1,2,3]
-    print len(a), range(1, 3)
+    a = np.array([1, 2, 3])
+    b = a.tolist()
+    print a
+    print b, b.index(2)
 
     # ab = np.zeros((2,3))
     # print ab, type(ab)

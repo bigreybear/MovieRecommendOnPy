@@ -13,7 +13,8 @@ except ImportError:
 
 def construct_avg_rat(df_ur_rat, factor, mandatery_flash=False):
     # now it can handle 671 correctly
-    # avg_rat is a list indexed by index of userId, content is avg and cnt
+    # avg_rat is a list, key is the userId, and content is avg and cnt
+    # avg_rat[0], avg_rat[-1] is for no use
     pio_str = 'hello world'
     if os.path.isfile('mid-data/avg_rat.dat') and not mandatery_flash:
         f = open('mid-data/avg_rat.dat', 'rb')
@@ -24,7 +25,7 @@ def construct_avg_rat(df_ur_rat, factor, mandatery_flash=False):
         f.close()
         return avg_dat
     else:
-        usr_ind = factor['index_userId']
+        # usr_ind = factor['index_userId']
         print 'its a new mid-data avg_rat'
         f = open('mid-data/avg_rat.dat', 'wb')
         ###
@@ -33,19 +34,20 @@ def construct_avg_rat(df_ur_rat, factor, mandatery_flash=False):
         cnt = df_ur_rat.userId.size
         print 'inside cnt:', cnt
 
-        avg_rat = {}
-        uid_n = usr_ind.index(uid[0])  # order of the userId
+        avg_rat = [0] * (factor['usr_cnt']+2)
+        uid_n = uid[0]  # order of the userId
         rat_n = 0  # sum of rat during this user
         rat_cnt = 0  # count of rats during this user
 
         for index in range(0, cnt):
-            if uid[index] == usr_ind[uid_n]:
+            if uid[index] == uid_n:
                 rat_n += rat[index]
                 rat_cnt += 1
-            if (uid[index] != usr_ind[uid_n]) or (index == cnt-1):
+            if (uid[index] != uid_n) or (index == cnt-1):
                 # store a list of related info : avg_rat, rat_cnt
-                avg_rat[usr_ind[uid_n]] = [round(1.*rat_n / rat_cnt, 2), rat_cnt]
-                uid_n = usr_ind.index(uid[index])
+                # key is userId
+                avg_rat[uid_n] = [round(1.*rat_n / rat_cnt, 2), rat_cnt]
+                uid_n = uid[index]
                 rat_n = rat[index]
                 rat_cnt = 1
 
@@ -119,17 +121,17 @@ def represent_matrix_builder(rat, factor, dic_avg, mad_fla=False):
     pro_ing_uid = 0
     ready_to_merge = False
     ur_list = []
-    for index in range(99800, factor['rat_cnt']):
+    ur_ind = factor['index_userId']
+    for index in range(factor['rat_cnt']):
         # show the progress
         if index%100 == 0:
             print 'processed:', index
+        if index > 100000:
+            print index
 
-        print rat.userId[index], rat.movieId[index], rat.rating[index],
-        print dic_avg[671]
-        print dic_avg[rat.userId[index]]
-        print 'rating computed:',
-        rlr = (rat.rating[index] - dic_avg[rat.userId[index]][0])  # real like rate
-        print rlr
+        # rlr = (rat.rating[index] - dic_avg[rat.userId[index]][0])  # real like rate
+        rlr = rat.rating[index]
+        # print rlr
         # fill list of user-rat
         if pro_ing_uid != rat.userId[index]:
             # print ur_list
@@ -156,9 +158,9 @@ def represent_matrix_builder(rat, factor, dic_avg, mad_fla=False):
     # punish the hot item (not finished)
     # save the repm to the mid-date
 
-    f = open('mid-data/rep-matrix.dat', 'wb')
-    pickle.dump(repm, f)
-    f.close()
+    # f = open('mid-data/rep-matrix.dat', 'wb')
+    # pickle.dump(repm, f)
+    # f.close()
 
     return repm
 
@@ -182,33 +184,28 @@ if __name__ == '__main__':
     movies = pd.read_csv(l_src_dir + 'movies.csv', header=0)
 
     factors = factor_builder(ratings, movies)
-    avg = construct_avg_rat(ratings, factors)
-    print avg
+    avg = construct_avg_rat(ratings, factors, True)
 
-    # for rr in factors['index_userId']:
-    #     print rr, factors['index_userId'].index(rr)
-    # represent_matrix_builder(ratings, factors, avg)
-    # print 'test output'
-    # print avg[670]
-    #
-    # rec = []
-    # ind = 1
-    # for rr in ratings.userId.values:
-    #
-    #     if rr != ind:
-    #         rec.append(rr)
-    #         ind += 1
-    #         if rr != ind:
-    #             pass
-    #             # print ind,
-    #
-    # # print len(rec)
-    # # print range(1, 671)
-    # for i in range(1, 671):
-    #     if i != rec[i-1]:
-    #         pass
-    #         # print i, rec[i-1]
-    #
-    # print rec[0], rec[670]
+    # iron man1:59315, 77561, 102125
+    # 6944 7526 8309
+    print factors['index_movieId'].index(59315)
+    print factors['index_movieId'].index(77561)
+    print factors['index_movieId'].index(102125)
+    rep_max = represent_matrix_builder(ratings, factors, avg, True)
+    print rep_max[6944][7526]
+    print rep_max[7526][8309]
 
-
+    ins = 0
+    while ins != 65535:
+        ins = input("input the movieId you wang to learn. End by 65535:\n")
+        t_ins = factors['index_movieId'].index(ins)
+        res = rep_max[t_ins].tolist()
+        b = []
+        for i in range(len(res)):
+            if res[i] > 25:
+                b.append((res[i], i))
+        cc = sorted(b, key=lambda bb: bb[0])
+        print len(cc)
+        for i in range(len(cc)):
+            if res[i] != 0:
+                print cc[i][0], factors['index_movieId'][cc[i][1]]
