@@ -54,14 +54,23 @@ def construct_avg_rat(df_ur_rat, mandatery_flash=False):
         ###
         pickle.dump(avg_rat, f)
         f.close()
-        return 0
+        return avg_rat
 
 
 def factor_builder(rat, mvs):
     fb = {}
 
+
     mvs_cnt = mvs.movieId.unique().size
     fb['mvs_cnt'] = mvs_cnt
+
+    # content is movieId
+    # order is the index of movie (for matrix or csv)
+    raws_m_m = mvs.movieId
+    index_movieId = [0] * mvs_cnt
+    for index in range(mvs_cnt):
+        index_movieId[index] = raws_m_m[index]
+    fb['index_movieId'] = index_movieId
 
     usr_cnt = rat.userId.unique().size
     fb['usr_cnt'] = usr_cnt
@@ -71,16 +80,76 @@ def factor_builder(rat, mvs):
     return fb
 
 
-def represent_matrix_builder(rat, factor, dic_avg):
-    repm = np.zeros((factor['usr_cnt'], factor['mvs_cnt']))
-    for index in range(factor['rat_cnt']):
-        print rat.userId[index], rat.movieId[index], rat.rating[index],
-        print 'rating computed:',
-        res = (rat.rating[index] - dic_avg[rat.userId[index]][0])  # real like rate
-        print res
-        if index>20:
-            break
+def calc_repm_inc(cri, url):
+    for index in range(len(url)):
+        mv_na = url[index][0]
+        rat_a = url[index][1]
+        for i_ind in range(index+1, len(url)):
+            mv_nb = url[i_ind][0]
+            rat_b = url[i_ind][1]
+            cri[mv_na][mv_nb] = round(rat_a * rat_b, 3)
+            cri[mv_nb][mv_na] = round(rat_a * rat_b, 3)
+            # print mv_na, mv_nb, rat_b*rat_a
 
+    return cri
+
+
+def represent_matrix_builder(rat, factor, dic_avg, mad_fla=False):
+    # rep-matrix already exist
+    if os.path.isfile('mid-data/rep-matrix.dat') and not mad_fla:
+        f = open('mid-data/rep-matrix.dat', 'rb')
+
+        load_repm = pickle.load(f)
+
+        print 'already a existing mid-data rep-matrix'
+        f.close()
+        return load_repm
+
+    # make a new matrix
+    repm = np.zeros((factor['mvs_cnt'], factor['mvs_cnt']))
+    repm_inc = np.zeros((factor['mvs_cnt'], factor['mvs_cnt']))
+    pro_ing_uid = 0
+    ready_to_merge = False
+    ur_list = []
+    for index in range(factor['rat_cnt']):
+        # show the progress
+        if index%100 == 0:
+            print 'processed:', index
+
+        # print rat.userId[index], rat.movieId[index], rat.rating[index],
+        # print 'rating computed:',
+        rlr = (rat.rating[index] - dic_avg[rat.userId[index]][0])  # real like rate
+        # fill list of user-rat
+        if pro_ing_uid != rat.userId[index]:
+            # print ur_list
+            # ready to calc the repm_inc, and calc it (calc_repm_inc)
+            repm_inc = calc_repm_inc(repm_inc, ur_list)
+            # abolish the old and create the new user-rat list
+            ur_list = []
+            pro_ing_uid = rat.userId[index]
+            # fill the first tuple and ready to merge
+            ready_to_merge = True
+
+        # check if rat is valid for moive list, and filling the list anyway
+        ur_list.append((factor['index_movieId'].index(rat.movieId[index]), rlr))
+
+        # merge repm_inc and repm
+        if ready_to_merge:
+            repm = repm_inc + repm_inc
+            ready_to_merge = False
+
+        # test loops limit
+        # if index>200:
+        #     break
+
+    # punish the hot item (not finished)
+    # save the repm to the mid-date
+
+    f = open('mid-data/rep-matrix.dat', 'wb')
+    pickle.dump(repm, f)
+    f.close()
+
+    return repm
 
 
 
