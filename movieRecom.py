@@ -112,9 +112,15 @@ def factor_builder(rat, mvs, mad_reb=False):
     # order is the index of movie (for matrix or csv)
     raws_m_m = mvs.movieId
     index_movieId = [0] * mvs_cnt
+    index_movieNm = [''] * mvs_cnt
+    movie_years = [0] *mvs_cnt
     for index in range(mvs_cnt):
         index_movieId[index] = raws_m_m[index]
+        index_movieNm[index] = mvs.title[index]
+        movie_years[index] = uutil.ret_y_mn(index_movieNm[index])
     fb['index_movieId'] = index_movieId
+    fb['index_movieNm'] = index_movieNm
+    fb['movie_years'] = movie_years
 
     usr_cnt = rat.userId.unique().size
     fb['usr_cnt'] = usr_cnt
@@ -146,6 +152,19 @@ def factor_builder(rat, mvs, mad_reb=False):
             usr_rat_mat[key][index_movieId.index(tp[0])] = tp[1]
     fb['usr_rat_mat'] = usr_rat_mat
 
+    sig_mv_rat = [0] * mvs_cnt
+    sig_sqr_mr = [0] * mvs_cnt
+    sig_coe = [0] * mvs_cnt
+    for ind in range(mvs_cnt):
+        for k in range(usr_cnt):
+            sig_mv_rat[ind] = usr_rat_mat[k][ind]
+            sig_sqr_mr[ind] = sig_mv_rat[ind] ** 2
+        sig_coe[ind] = math.sqrt(sig_sqr_mr[ind] - sig_mv_rat[ind]*sig_mv_rat[ind]/usr_cnt)
+
+    fb['sig_mv_rat'] = sig_mv_rat
+    fb['sig_sqr_mr'] = sig_sqr_mr
+    fb['sig_coe'] = sig_coe
+
     rat_cnt = rat.rating.size
     fb['rat_cnt'] = rat_cnt
 
@@ -153,9 +172,8 @@ def factor_builder(rat, mvs, mad_reb=False):
     # notice that its been transformed to a sparse matrix
     fb['usr_rat_mat'] = coo_matrix(usr_rat_mat)
     pickle.dump(fb, f)
-
     f.close()
-
+    fb['usr_rat_mat'] = fb['usr_rat_mat'].todense()
     print 'Factors built, time:', time.strftime("%H:%M:%S")
     return fb
 
@@ -285,23 +303,27 @@ def pearson_p1(va, vb):
     return nr
 
 
-def pearson_p2(va, vb):
-    localn = len(va)
-    sig_a = 0
-    sig_b = 0
-    for i in range(localn):
-        sig_a += va[i]
-        sig_b += vb[i]
-    ret = sig_b * sig_a
-    ret = 1. * ret / localn
+def pearson_p2(va, vb, fac=None, ia=-1, ib=-1):
+    if fac is None:
+        localn = len(va)
+        sig_a = 0
+        sig_b = 0
+        for i in range(localn):
+            sig_a += va[i]
+            sig_b += vb[i]
+        ret = sig_b * sig_a
+        ret = 1. * ret / localn
+    else:
+        ret = 1. * fac['sig_mv_rat'][ia] * fac['sig_mv_rat'][ib]
+        ret = 1. * ret / fac['usr_cnt']
     return ret
 
 
-def pearson_p12(va, vb):
-    return pearson_p1(va, vb) - pearson_p2(va, vb)
+def pearson_p12(va, vb, fac=None, ia=-1, ib=-1):
+    return pearson_p1(va, vb) - pearson_p2(va, vb, fac, ia, ib)
 
 
-def pearson_p34(vx):
+def pearson_p34(vx, fac=None, ix=-1):
     sig_xs = 0
     sig_x = 0
     for i in range(len(vx)):
@@ -311,18 +333,21 @@ def pearson_p34(vx):
     return ret
 
 
-def pearson_p3456(va, vb):
-    ret = pearson_p34(va) * pearson_p34(vb)
-    ret = math.sqrt(ret)
+def pearson_p3456(va, vb, fac=None, ia=-1, ib=-1):
+    if fac is None:
+        ret = pearson_p34(va) * pearson_p34(vb)
+        ret = math.sqrt(ret)
+    else:
+        ret = fac['sig_coe'][ia] * fac['sig_coe'][ib]
     return ret
 
 
-def pearson_coe(va, vb):
+def pearson_coe(va, vb, fac=None, ia=-1, ib=-1):
     va, vb, n, r_uid = uutil.pre_vecs(va, vb)
     if n == 0:
         return 0
     p12 = pearson_p12(va, vb)
-    p3456 = pearson_p3456(va, vb)
+    p3456 = pearson_p3456(va, vb, fac, ia, ib)
     # print p12, p3456
 
     if p3456 == 0:
@@ -333,7 +358,7 @@ def pearson_coe(va, vb):
     return p12 / p3456
 
 
-def pearson_relate_matrix(fac, mad_reb=False):
+def pearson_relate_matrix(fac, mad_reb=False, from_year=-1):
     print 'Start to build the pearson relate matrix, time:', time.strftime("%H:%M:%S")
     if os.path.isfile('mid-data/prm.dat') and not mad_reb:
         f = open('mid-data/prm.dat', 'rb')
@@ -351,16 +376,23 @@ def pearson_relate_matrix(fac, mad_reb=False):
     mvn = fac['mvs_cnt']
     prm = np.zeros([mvn, mvn])
     for o_index in range(mvn):
+        # check year cons
+        if fac['movie_years'][o_index] <= from_year:
+            continue
         # report the progress
         if o_index % 1 == 0:
             print "Finished : ", o_index, "/", mvn
         vc_a = urm[:, o_index]
         for i_index in range(o_index+1, mvn):
+            # check year cons
+            if fac['movie_years'][i_index] <= from_year:
+                continue
+
             if i_index % 1000 == 0:
                 print "i_index : ", i_index, "/", mvn
             vc_b = urm[:, i_index]
+            # the most hard part
             ress = pearson_coe(vc_a, vc_b)
-            # print ress, 'ress'
             prm[o_index][i_index] = ress
             prm[i_index][o_index] = ress
 
@@ -382,14 +414,33 @@ if __name__ == '__main__':
     movies = pd.read_csv(l_src_dir + 'movies.csv', header=0)
 
     factors = factor_builder(ratings, movies)
-    # avg = construct_avg_rat(ratings, factors, True)
-    vsa = factors['usr_rat_mat'][:, 2]
-    vsb = factors['usr_rat_mat'][:, 6944]
-    print factors['usr_rat_mat'][441, 2]
-    # res = pearson_coe(vsa, vsb)
-    # print res
-    # print factors['usrs_rat'][check_rid[0]]
-    pearson_relate_matrix(factors)
+
+    # index_b = 9121
+    # print time.strftime("%H:%M:%S")
+    # for i in range(factors['mvs_cnt']):
+    #     vsa = factors['usr_rat_mat'][:, i]
+    #     vsb = factors['usr_rat_mat'][:, index_b]
+    #     # print factors['usr_rat_mat'][441, 2]
+    #     res = pearson_coe(vsa, vsb, factors, i, index_b)
+    #     if i % 1000 == 0:
+    #         print 'now at :', i
+    #     if res>0.2:
+    #         print res, i, factors['index_movieNm'][i], factors['movie_years'][i]
+    # print time.strftime("%H:%M:%S")
+
+    gm_prm = pearson_relate_matrix(factors, from_year=2015)
+    print gm_prm[9114, 9121], factors['index_movieNm'][9114]
+    print gm_prm[9121, 9114], factors['index_movieNm'][9121]
+
+    # check for non-zero value and index
+    for oia in range(factors['mvs_cnt']):
+        for oib in range(factors['mvs_cnt']):
+            if gm_prm[oia, oib] != 0:
+                print gm_prm[oia, oib]
+                print oia, factors['index_movieNm'][oia]
+                print oib, factors['index_movieNm'][oib]
+
+
     # check_rel_between(77561, 59315, avg, factors)
 
     # uutil.dict_watcher(factors['usrs_rat'], 10)

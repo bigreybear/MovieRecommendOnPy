@@ -28,8 +28,8 @@ def ret_y_mn(mvn='Hl (aa) and (122) this a; (1923)'):
     patt = re.compile(u'\d{4}\D*$')
     res_re_p = re.search(patt, mvn)
     if not res_re_p:
-        print mvn
-        print 'match failed, and failed info is above'
+        # print mvn
+        # print 'match failed, and failed info is above'
         return 0
     patt2 = re.compile(u'\d*')
     resrep = re.search(patt2, res_re_p.group())
@@ -38,11 +38,14 @@ def ret_y_mn(mvn='Hl (aa) and (122) this a; (1923)'):
 
 def mv_year_divide(mvns):
     titles = mvns.values
-    myd_dic = {'1950-': 0, '1950+': 0, '1970+': 0, '1990+': 0, '2010+': 0}
+    myd_dic = {'1950-': 0, '1950+': 0, '1970+': 0, '1990+': 0, '2006+': 0, '2011+':0}
     for ys in titles:
         ysi = ret_y_mn(ys)
-        if ysi > 2010:
-            myd_dic['2010+'] += 1
+        if ysi > 2011:
+            myd_dic['2011+'] += 1
+            continue
+        if ysi > 2006:
+            myd_dic['2006+'] += 1
             continue
         if ysi > 1990:
             myd_dic['1990+'] += 1
@@ -69,16 +72,14 @@ def pre_vecs(va, vb):
         print 'There must be some mistake!'
         return 0
     for i in range(lg):
-        if (va[i] != 0) and (vb[i] != 0):
-            rat_uid.append(i)
-            # print va[i,0], 'aaa', type(va[i,0])
-            if type(va[i]) is not float:
-                nra.append(va[i, 0])
-                nrb.append(vb[i, 0])
-            else:
-                nra.append(va[i])
-                nrb.append(vb[i])
-            n_c += 1
+        # all val in vec should be calc-ed
+        if type(va[i]) is not float:
+            nra.append(va[i, 0])
+            nrb.append(vb[i, 0])
+        else:
+            nra.append(va[i])
+            nrb.append(vb[i])
+        n_c += 1
     return nra, nrb, n_c, rat_uid
 
 
@@ -96,7 +97,7 @@ if __name__ == '__main__':
     # print movieRecom.pearson_coe(ar_1, ar_2)
     # print np.zeros([3,3])
     # print range(1,3)
-    print movieRecom.pearson_p34([2.,2.])
+    # print movieRecom.pearson_p34([2.,2.])
 
 
     # print ac
@@ -116,7 +117,8 @@ if __name__ == '__main__':
     # ab = np.zeros((2,3))
     # print ab, type(ab)
 
-    # mv_year_divide(movies.title)
+    res = mv_year_divide(movies.title)
+    dict_watcher(res)
     # if type(123) is int:
     #     print 'ye'
     # count = 0
