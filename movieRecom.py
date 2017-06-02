@@ -6,32 +6,43 @@ import os
 import sys
 import uutil
 import time
+import math
+from scipy.sparse import coo_matrix
 try:
     import cPickle as pickle
 except ImportError:
     import pickle
 
 
-def check_rel_between(rat, a, b, avgs, fcs):
-    finds = 0
+def check_rel_between(a, b, avgs, fcs):
     recs = []
     cell = {}
     sum_cnt = 0
-    for index in range(len(rat)):
-        if (rat.movieId[index] == a) or (rat.movieId[index] == b):
-            if finds == 1:
-                cell['b'] = rat.rating[index]
-                recs.append(cell)
-                cell = {}
-                finds = 0
-                pass
-            elif finds == 0:
-                cell['a'] = rat.rating[index]
-                cell['u'] = rat.userId[index]
-                finds = 1
+    usrs_rats = fcs['usrs_rat']
+    for key in usrs_rats:
+        finds = 0
+        for tups in usrs_rats[key]:
+            if (tups[0] == a) or (tups[0] == b):
+                if finds == 1:
+                    cell['b'] = tups[1]
+                    recs.append(cell)
+                    cell = {}
+                    finds = 0
+                    pass
+                elif finds == 0:
+                    cell['a'] = tups[1]
+                    cell['u'] = key
+                    finds = 1
     for u in recs:
-        sum_cnt += u['a'] * u['b']
-        print u, avgs[fcs['index_userId'].index(u['u'])]
+        average = avgs[u['u']+1][0]
+        dis1 = u['a'] - average
+        dis2 = u['b'] - average
+        if (dis1 < 0) and (dis2 < 0):
+            sum_cnt += 0
+        else:
+            rlr =dis1 * dis2
+            sum_cnt += rlr
+        print u, avgs[fcs['index_userId'][u['u']]], 'rlr:', rlr
     print 'expected repm:', sum_cnt
 
 
@@ -80,7 +91,18 @@ def construct_avg_rat(df_ur_rat, factor, mandatery_flash=False):
         return avg_rat
 
 
-def factor_builder(rat, mvs):
+def factor_builder(rat, mvs, mad_reb=False):
+    print 'Start to build the factors, time:', time.strftime("%H:%M:%S")
+    if os.path.isfile('mid-data/factors.dat') and not mad_reb:
+        f = open('mid-data/factors.dat', 'rb')
+
+        load_fb = pickle.load(f)
+        load_fb['usr_rat_mat'] = load_fb['usr_rat_mat'].todense()
+        print 'already a existing mid-data factors'
+        f.close()
+        print 'Factors loaded, time:', time.strftime("%H:%M:%S")
+        return load_fb
+
     fb = {}
 
     mvs_cnt = mvs.movieId.unique().size
@@ -109,8 +131,32 @@ def factor_builder(rat, mvs):
             index_userId[e_index] = raws_m_m[index]
     fb['index_userId'] = index_userId
 
+    usrs_rat = {}
+    for index in range(len(rat.userId)):
+        user_no = index_userId.index(rat.userId[index])
+        if user_no not in usrs_rat:
+            usrs_rat[user_no] = ((rat.movieId[index], rat.rating[index]), )
+        else:
+            usrs_rat[user_no] += ((rat.movieId[index], rat.rating[index]), )
+    fb['usrs_rat'] = usrs_rat
+
+    usr_rat_mat = np.zeros([usr_cnt, mvs_cnt])
+    for key in usrs_rat:
+        for tp in usrs_rat[key]:
+            usr_rat_mat[key][index_movieId.index(tp[0])] = tp[1]
+    fb['usr_rat_mat'] = usr_rat_mat
+
     rat_cnt = rat.rating.size
     fb['rat_cnt'] = rat_cnt
+
+    f = open('mid-data/factors.dat', 'wb')
+    # notice that its been transformed to a sparse matrix
+    fb['usr_rat_mat'] = coo_matrix(usr_rat_mat)
+    pickle.dump(fb, f)
+
+    f.close()
+
+    print 'Factors built, time:', time.strftime("%H:%M:%S")
     return fb
 
 
@@ -231,6 +277,47 @@ def console_lookup(l_factors, l_rep_max):
                 print cc[i][0], factors['index_movieId'][cc[i][1]]
 
 
+def pearson_p1(va, vb):
+    nr = 0
+    for i in range(len(va)):
+        nr += va[i] * vb[i]
+    return nr
+
+
+def pearson_p2(va, vb):
+    localn = len(va)
+    sig_a = 0
+    sig_b = 0
+    for i in range(localn):
+        sig_a += va[i]
+        sig_b += vb[i]
+    ret = sig_b * sig_a
+    ret = 1. * ret / localn
+    return ret
+
+
+def pearson_p12(va, vb):
+    return pearson_p1(va, vb) - pearson_p2(va, vb)
+
+
+def pearson_p34(vx):
+    sig_xs = 0
+    sig_x = 0
+    for i in range(len(vx)):
+        sig_xs += vx[i] ** 2
+        sig_x += vx[i]
+    ret = sig_xs - sig_x*sig_x/len(vx)
+    return ret
+
+
+def pearson_p3456(va, vb):
+    ret = pearson_p34(va) * pearson_p34(vb)
+    ret = math.sqrt(ret)
+    return ret
+
+
+def pearson_coe(va, vb):
+    return pearson_p12(va, vb) / pearson_p3456(va, vb)
 
 
 if __name__ == '__main__':
@@ -241,17 +328,23 @@ if __name__ == '__main__':
 
     factors = factor_builder(ratings, movies)
     avg = construct_avg_rat(ratings, factors, True)
+    vsa = factors['usr_rat_mat'][:, 7526]
+    vsb = factors['usr_rat_mat'][:, 8309]
+    res = pearson_coe(vsa, vsb)
+    print res[0, 0]
+    # check_rel_between(77561, 59315, avg, factors)
 
-    check_rel_between(ratings, 59315, 77561, avg, factors)
+    # uutil.dict_watcher(factors['usrs_rat'], 10)
+    # print factors['usrs_rat'][14]
 
     # iron man1:59315, 77561, 102125
     # 6944 7526 8309
     # print factors['index_movieId'].index(59315)
     # print factors['index_movieId'].index(77561)
     # print factors['index_movieId'].index(102125)
-    rep_max = represent_matrix_builder(ratings, factors, avg, True)
-    print rep_max[6944][7526]
+    # rep_max = represent_matrix_builder(ratings, factors, avg, True)
+    # print rep_max[6944][7526]
 
-    console_lookup(factors, rep_max)
+    # console_lookup(factors, rep_max)
 
 

@@ -1,7 +1,9 @@
 import numpy as np
 import pandas as pd
 import re
+import movieRecom
 import sys
+from scipy.sparse import coo_matrix
 
 
 def insider_watcher(obj, ws=False):
@@ -13,9 +15,12 @@ def insider_watcher(obj, ws=False):
     return 0
 
 
-def dict_watcher(dic):
+def dict_watcher(dic, limit=0):
     for key in dic:
         print key, dic[key]
+        limit -= 1
+        if limit == 0:
+            break
     return 0
 
 
@@ -53,29 +58,51 @@ def mv_year_divide(mvns):
     return myd_dic
 
 
+def pre_vecs(va, vb):
+    lg = len(va)
+    lg_b = len(vb)
+    n_c = 0
+    nra = []
+    nrb = []
+    if lg != lg_b:
+        print 'There must be some mistake!'
+        return 0
+    for i in range(lg):
+        if (va[i] != 0) and (vb[i] != 0):
+            nra.append(va[i])
+            nrb.append(vb[i])
+            n_c += 1
+    return nra, nrb, n_c
+
+
 if __name__ == '__main__':
     print 'its main'
     l_src_dir = './ml-latest-small/ml-latest-small/'
     ratings = pd.read_csv(l_src_dir + 'ratings.csv', header=0)
     movies = pd.read_csv(l_src_dir + 'movies.csv', header=0)
 
-    print ratings.rating.size
-    print len(ratings)
-    print ratings.movieId[0]
+    ar_1 = [0, 3.5, 5.0, 3.5, 0, 3.0, 5.0]
+    ar_2 = [0, 3.0, 3.5, 0, 2.0, 2.0, 0]
+    ar_1, ar_2, _ = pre_vecs(ar_1, ar_2)
+    print ar_1
+    print ar_2
+    print movieRecom.pearson_coe(ar_1, ar_2)
 
-    a = np.matrix([[1,2,4,6], [6,7,8,3]])
+
+    # print ac
+    # print b
     # b = a.tolist()
     # print a
     # print b, b.index(2)
-    print a
-    b = a * 2
-    print b
-    # print a + b
-    print 'hell'
-    print b[0, 1]
-
-    c = np.arange(12).reshape(4,3)
-    print c, c[0][0], c[1][2]
+    # print a
+    # b = a * 2
+    # print b
+    # # print a + b
+    # print 'hell'
+    # print b[0, 1]
+    #
+    # c = np.arange(12).reshape(4,3)
+    # print c, c[0][0], c[1][2]
     # ab = np.zeros((2,3))
     # print ab, type(ab)
 
