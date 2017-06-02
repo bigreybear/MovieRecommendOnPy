@@ -386,8 +386,8 @@ if __name__ == '__main__':
     vsa = factors['usr_rat_mat'][:, 2]
     vsb = factors['usr_rat_mat'][:, 6944]
     print factors['usr_rat_mat'][441, 2]
-    res = pearson_coe(vsa, vsb)
-    print res
+    # res = pearson_coe(vsa, vsb)
+    # print res
     # print factors['usrs_rat'][check_rid[0]]
     pearson_relate_matrix(factors)
     # check_rel_between(77561, 59315, avg, factors)
