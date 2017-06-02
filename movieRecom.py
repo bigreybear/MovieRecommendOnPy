@@ -161,6 +161,7 @@ def factor_builder(rat, mvs, mad_reb=False):
 
 
 def calc_repm_inc(cri, url, usrid):
+
     for index in range(len(url)):
         mv_na = url[index][0]
         rat_a = url[index][1]
@@ -317,7 +318,61 @@ def pearson_p3456(va, vb):
 
 
 def pearson_coe(va, vb):
-    return pearson_p12(va, vb) / pearson_p3456(va, vb)
+    va, vb, n, r_uid = uutil.pre_vecs(va, vb)
+    if n == 0:
+        return 0
+    p12 = pearson_p12(va, vb)
+    p3456 = pearson_p3456(va, vb)
+    # print p12, p3456
+
+    if p3456 == 0:
+        # print 'p3456 is zero'
+        # print va
+        # print vb
+        return 0
+    return p12 / p3456
+
+
+def pearson_relate_matrix(fac, mad_reb=False):
+    print 'Start to build the pearson relate matrix, time:', time.strftime("%H:%M:%S")
+    if os.path.isfile('mid-data/prm.dat') and not mad_reb:
+        f = open('mid-data/prm.dat', 'rb')
+
+        load_prm = pickle.load(f)
+        load_prm = load_prm.todense()
+        print 'already a existing mid-data prm'
+        f.close()
+        print 'Factors loaded, time:', time.strftime("%H:%M:%S")
+        return load_prm
+
+    # fac is for factors, all you need is in
+    # below is how the matrix built
+    urm = fac['usr_rat_mat']
+    mvn = fac['mvs_cnt']
+    prm = np.zeros([mvn, mvn])
+    for o_index in range(mvn):
+        # report the progress
+        if o_index % 1 == 0:
+            print "Finished : ", o_index, "/", mvn
+        vc_a = urm[:, o_index]
+        for i_index in range(o_index+1, mvn):
+            if i_index % 1000 == 0:
+                print "i_index : ", i_index, "/", mvn
+            vc_b = urm[:, i_index]
+            ress = pearson_coe(vc_a, vc_b)
+            # print ress, 'ress'
+            prm[o_index][i_index] = ress
+            prm[i_index][o_index] = ress
+
+    # above is the building process
+
+    f = open('mid-data/prm.dat', 'wb')
+    # notice that its been transformed to a sparse matrix
+    prm = coo_matrix(prm)
+    pickle.dump(prm, f)
+    f.close()
+    print 'Pearson relate matrix built, time:', time.strftime("%H:%M:%S")
+    return prm
 
 
 if __name__ == '__main__':
@@ -327,11 +382,14 @@ if __name__ == '__main__':
     movies = pd.read_csv(l_src_dir + 'movies.csv', header=0)
 
     factors = factor_builder(ratings, movies)
-    avg = construct_avg_rat(ratings, factors, True)
-    vsa = factors['usr_rat_mat'][:, 7526]
-    vsb = factors['usr_rat_mat'][:, 8309]
+    # avg = construct_avg_rat(ratings, factors, True)
+    vsa = factors['usr_rat_mat'][:, 2]
+    vsb = factors['usr_rat_mat'][:, 6944]
+    print factors['usr_rat_mat'][441, 2]
     res = pearson_coe(vsa, vsb)
-    print res[0, 0]
+    print res
+    # print factors['usrs_rat'][check_rid[0]]
+    pearson_relate_matrix(factors)
     # check_rel_between(77561, 59315, avg, factors)
 
     # uutil.dict_watcher(factors['usrs_rat'], 10)

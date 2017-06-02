@@ -64,15 +64,22 @@ def pre_vecs(va, vb):
     n_c = 0
     nra = []
     nrb = []
+    rat_uid = []
     if lg != lg_b:
         print 'There must be some mistake!'
         return 0
     for i in range(lg):
         if (va[i] != 0) and (vb[i] != 0):
-            nra.append(va[i])
-            nrb.append(vb[i])
+            rat_uid.append(i)
+            # print va[i,0], 'aaa', type(va[i,0])
+            if type(va[i]) is not float:
+                nra.append(va[i, 0])
+                nrb.append(vb[i, 0])
+            else:
+                nra.append(va[i])
+                nrb.append(vb[i])
             n_c += 1
-    return nra, nrb, n_c
+    return nra, nrb, n_c, rat_uid
 
 
 if __name__ == '__main__':
@@ -83,10 +90,13 @@ if __name__ == '__main__':
 
     ar_1 = [0, 3.5, 5.0, 3.5, 0, 3.0, 5.0]
     ar_2 = [0, 3.0, 3.5, 0, 2.0, 2.0, 0]
-    ar_1, ar_2, _ = pre_vecs(ar_1, ar_2)
-    print ar_1
-    print ar_2
-    print movieRecom.pearson_coe(ar_1, ar_2)
+    # ar_1, ar_2, _ = pre_vecs(ar_1, ar_2)
+    # print ar_1
+    # print ar_2
+    # print movieRecom.pearson_coe(ar_1, ar_2)
+    # print np.zeros([3,3])
+    # print range(1,3)
+    print movieRecom.pearson_p34([2.,2.])
 
 
     # print ac
