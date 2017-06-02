@@ -398,7 +398,7 @@ def pearson_relate_matrix(fac, mad_reb=False, from_year=-1):
 
     # above is the building process
 
-    f = open('mid-data/prm.dat', 'wb')
+    f = open('mid-data/prm-bt2011.dat', 'wb')
     # notice that its been transformed to a sparse matrix
     prm = coo_matrix(prm)
     pickle.dump(prm, f)
@@ -428,17 +428,17 @@ if __name__ == '__main__':
     #         print res, i, factors['index_movieNm'][i], factors['movie_years'][i]
     # print time.strftime("%H:%M:%S")
 
-    gm_prm = pearson_relate_matrix(factors, from_year=2015)
-    print gm_prm[9114, 9121], factors['index_movieNm'][9114]
-    print gm_prm[9121, 9114], factors['index_movieNm'][9121]
-
-    # check for non-zero value and index
-    for oia in range(factors['mvs_cnt']):
-        for oib in range(factors['mvs_cnt']):
-            if gm_prm[oia, oib] != 0:
-                print gm_prm[oia, oib]
-                print oia, factors['index_movieNm'][oia]
-                print oib, factors['index_movieNm'][oib]
+    gm_prm = pearson_relate_matrix(factors, from_year=2011, mad_reb=True)
+    # print gm_prm[9114, 9121], factors['index_movieNm'][9114]
+    # print gm_prm[9121, 9114], factors['index_movieNm'][9121]
+    #
+    # # check for non-zero value and index
+    # for oia in range(factors['mvs_cnt']):
+    #     for oib in range(factors['mvs_cnt']):
+    #         if gm_prm[oia, oib] != 0:
+    #             print gm_prm[oia, oib]
+    #             print oia, factors['index_movieNm'][oia]
+    #             print oib, factors['index_movieNm'][oib]
 
 
     # check_rel_between(77561, 59315, avg, factors)
