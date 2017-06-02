@@ -60,12 +60,22 @@ if __name__ == '__main__':
     movies = pd.read_csv(l_src_dir + 'movies.csv', header=0)
 
     print ratings.rating.size
+    print len(ratings)
+    print ratings.movieId[0]
 
-    a = np.array([1, 2, 3])
-    b = a.tolist()
+    a = np.matrix([[1,2,4,6], [6,7,8,3]])
+    # b = a.tolist()
+    # print a
+    # print b, b.index(2)
     print a
-    print b, b.index(2)
+    b = a * 2
+    print b
+    # print a + b
+    print 'hell'
+    print b[0, 1]
 
+    c = np.arange(12).reshape(4,3)
+    print c, c[0][0], c[1][2]
     # ab = np.zeros((2,3))
     # print ab, type(ab)
 
