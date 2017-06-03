@@ -94,10 +94,13 @@ def construct_avg_rat(df_ur_rat, factor, mandatery_flash=False):
         return avg_rat
 
 
-def factor_builder(rat, mvs, mad_reb=False):
+def factor_builder(rat, mvs, mad_reb=False, file_path=None):
+    if file_path is None:
+        file_path = 'mid-data/factors.dat'
     print 'Start to build the factors, time:', time.strftime("%H:%M:%S")
-    if os.path.isfile('mid-data/factors.dat') and not mad_reb:
-        f = open('mid-data/factors.dat', 'rb')
+    print 'Factor File Path: ', file_path
+    if os.path.isfile(file_path) and not mad_reb:
+        f = open(file_path, 'rb')
 
         load_fb = pickle.load(f)
         load_fb['usr_rat_mat'] = load_fb['usr_rat_mat'].todense()
@@ -170,6 +173,7 @@ def factor_builder(rat, mvs, mad_reb=False):
         for tp in usrs_rat[key]:
             usr_rat_mat[key][index_movieId.index(tp[0])] = tp[1]
     fb['usr_rat_mat'] = usr_rat_mat
+    print 'Finished make usr_rat_mat'
 
     """
     # a list index by the index of movie
@@ -190,6 +194,7 @@ def factor_builder(rat, mvs, mad_reb=False):
             mvs_rat[key] = (round(1.*n_acc/n_cnt, 3), n_cnt, index_movieNm[key])
 
     fb['mvs_rat'] = mvs_rat
+    print 'Finished make mvs_rat'
 
 
     """
@@ -198,6 +203,7 @@ def factor_builder(rat, mvs, mad_reb=False):
     # sig_coe for SIGma COEfficient of a movie rates
     # all these factors to accelerate the calculation of pearson matrix
     """
+    print 'Making coefficient for Pearson Matrix...'
     sig_mv_rat = [0] * mvs_cnt
     sig_sqr_mr = [0] * mvs_cnt
     sig_coe = [0] * mvs_cnt
@@ -210,11 +216,12 @@ def factor_builder(rat, mvs, mad_reb=False):
     fb['sig_mv_rat'] = sig_mv_rat
     fb['sig_sqr_mr'] = sig_sqr_mr
     fb['sig_coe'] = sig_coe
+    print 'Pearson Matrix calculation is ready NOW.'
 
     rat_cnt = rat.rating.size
     fb['rat_cnt'] = rat_cnt
 
-    f = open('mid-data/factors.dat', 'wb')
+    f = open(file_path, 'wb')
     # notice that its been transformed to a sparse matrix
     fb['usr_rat_mat'] = coo_matrix(usr_rat_mat)
     pickle.dump(fb, f)
@@ -460,6 +467,8 @@ def pearson_relate_matrix(fac, mad_reb=False, from_year=-1, filename=None, filed
 
 
 def search_mov_name(fac, pat, from_year=-1):
+    if pat == "":
+        return ""
     mnl = fac['mvs_rat']
     mvsn = fac['mvs_cnt']
     ret = []
@@ -473,7 +482,6 @@ def search_mov_name(fac, pat, from_year=-1):
             t_ret = (mnl[i][2], i)
             ret.append(t_ret)
     return ret
-
 
 
 if __name__ == '__main__':

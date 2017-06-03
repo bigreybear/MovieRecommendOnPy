@@ -86,11 +86,18 @@ def pre_vecs(va, vb):
 if __name__ == '__main__':
     print 'its main'
     l_src_dir = './ml-latest-small/ml-latest-small/'
+    src_dir_20m = './ml-20m/ml-20m/'
     ratings = pd.read_csv(l_src_dir + 'ratings.csv', header=0)
     movies = pd.read_csv(l_src_dir + 'movies.csv', header=0)
 
     ar_1 = [0, 3.5, 5.0, 3.5, 0, 3.0, 5.0]
     ar_2 = [0, 3.0, 3.5, 0, 2.0, 2.0, 0]
+
+    print sorted(ar_1, reverse=True)
+
+    ar_1.sort(reverse=True)
+
+    print ar_1
 
     """
     # Test matrix dot plus by numpy

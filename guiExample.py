@@ -71,7 +71,7 @@ class MyPanel1(wx.Panel):
 
         bSizer7 = wx.BoxSizer(wx.HORIZONTAL)
 
-        self.m_recom_list = wx.ListCtrl(self, wx.ID_ANY, wx.DefaultPosition, wx.Size(350, 375), wx.LC_ICON)
+        self.m_recom_list = wx.ListCtrl(self, wx.ID_ANY, wx.DefaultPosition, wx.Size(350, 375), wx.LC_REPORT)
         bSizer7.Add(self.m_recom_list, 0, wx.ALL, 5)
 
         bSizer8 = wx.BoxSizer(wx.VERTICAL)
@@ -102,13 +102,24 @@ class MyPanel1(wx.Panel):
 
         # Connect Events
         self.m_but_search.Bind(wx.EVT_BUTTON, self.search_pat)
+        self.m_but_know.Bind(wx.EVT_BUTTON, self.thats_it)
+        self.m_but_like.Bind(wx.EVT_BUTTON, self.like_it)
+        self.m_but_hate.Bind(wx.EVT_BUTTON, self.hate_it)
 
     def __del__(self):
         pass
 
     # Virtual event handlers, overide them in your derived class
     def search_pat(self, event):
-        print 'it happened!'
+        event.Skip()
+
+    def thats_it(self, event):
+        event.Skip()
+
+    def like_it(self, event):
+        event.Skip()
+
+    def hate_it(self, event):
         event.Skip()
 
 
