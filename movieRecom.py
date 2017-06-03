@@ -7,6 +7,9 @@ import sys
 import uutil
 import time
 import math
+import re
+import MyGUI
+import wx
 from scipy.sparse import coo_matrix
 try:
     import cPickle as pickle
@@ -108,8 +111,11 @@ def factor_builder(rat, mvs, mad_reb=False):
     mvs_cnt = mvs.movieId.unique().size
     fb['mvs_cnt'] = mvs_cnt
 
-    # content is movieId
+    """
+    # content is movieId or movie's title
     # order is the index of movie (for matrix or csv)
+    # this 'index' is used for anywhere in this program, avoid to use a un-continuous movieId
+    """
     raws_m_m = mvs.movieId
     index_movieId = [0] * mvs_cnt
     index_movieNm = [''] * mvs_cnt
@@ -125,8 +131,11 @@ def factor_builder(rat, mvs, mad_reb=False):
     usr_cnt = rat.userId.unique().size
     fb['usr_cnt'] = usr_cnt
 
+    """
     # content is userId
     # order is the index of user appeared in csv (for avg_rat)
+    # like the index_movieId, this index is used to use un-continuous userId
+    """
     raws_m_m = rat.userId
     index_userId = [0] * usr_cnt
     e_index = 0
@@ -137,6 +146,10 @@ def factor_builder(rat, mvs, mad_reb=False):
             index_userId[e_index] = raws_m_m[index]
     fb['index_userId'] = index_userId
 
+    """
+    # key is user index/number
+    # content is a tuple of tuples, which are the movies index and rates, rated by the key user
+    """
     usrs_rat = {}
     for index in range(len(rat.userId)):
         user_no = index_userId.index(rat.userId[index])
@@ -146,12 +159,45 @@ def factor_builder(rat, mvs, mad_reb=False):
             usrs_rat[user_no] += ((rat.movieId[index], rat.rating[index]), )
     fb['usrs_rat'] = usrs_rat
 
+    """
+    # a matrix
+    # one row for one user, indexed by user index/number
+    # one column for one movie, indexed by movie index of course
+    # one cell for one rate of a movie, rated by the user
+    """
     usr_rat_mat = np.zeros([usr_cnt, mvs_cnt])
     for key in usrs_rat:
         for tp in usrs_rat[key]:
             usr_rat_mat[key][index_movieId.index(tp[0])] = tp[1]
     fb['usr_rat_mat'] = usr_rat_mat
 
+    """
+    # a list index by the index of movie
+    # each cell is a tuple, for a movie
+    # each tuple consists of ( average rates, rates count, movie title)
+    """
+    mvs_rat = [()] * mvs_cnt
+    for key in range(mvs_cnt):
+        n_acc = 0
+        n_cnt = 0
+        for i_key in range(usr_cnt):
+            if usr_rat_mat[i_key][key] != 0:
+                n_cnt += 1
+                n_acc += usr_rat_mat[i_key][key]
+        if n_cnt == 0:
+            mvs_rat[key] = (0, 0, index_movieNm[key])
+        else:
+            mvs_rat[key] = (round(1.*n_acc/n_cnt, 3), n_cnt, index_movieNm[key])
+
+    fb['mvs_rat'] = mvs_rat
+
+
+    """
+    # sig_mv_rat for SIGma of MoVie RATes
+    # sig_sqr_mr for SIGma of SQRed Movie Rates
+    # sig_coe for SIGma COEfficient of a movie rates
+    # all these factors to accelerate the calculation of pearson matrix
+    """
     sig_mv_rat = [0] * mvs_cnt
     sig_sqr_mr = [0] * mvs_cnt
     sig_coe = [0] * mvs_cnt
@@ -358,16 +404,21 @@ def pearson_coe(va, vb, fac=None, ia=-1, ib=-1):
     return p12 / p3456
 
 
-def pearson_relate_matrix(fac, mad_reb=False, from_year=-1):
+def pearson_relate_matrix(fac, mad_reb=False, from_year=-1, filename=None, filedir=None):
+    if (filedir is not None) and (filename is not None):
+        file_path = filedir + '/' + filename + '.dat'
+    else:
+        file_path = 'mid-data/prm-bt2006.dat'
+
     print 'Start to build the pearson relate matrix, time:', time.strftime("%H:%M:%S")
-    if os.path.isfile('mid-data/prm.dat') and not mad_reb:
-        f = open('mid-data/prm.dat', 'rb')
+    if os.path.isfile(file_path) and not mad_reb:
+        f = open(file_path, 'rb')
 
         load_prm = pickle.load(f)
         load_prm = load_prm.todense()
         print 'already a existing mid-data prm'
         f.close()
-        print 'Factors loaded, time:', time.strftime("%H:%M:%S")
+        print 'Pearson matrix loaded, time:', time.strftime("%H:%M:%S")
         return load_prm
 
     # fac is for factors, all you need is in
@@ -398,22 +449,62 @@ def pearson_relate_matrix(fac, mad_reb=False, from_year=-1):
 
     # above is the building process
 
-    f = open('mid-data/prm-bt2006.dat', 'wb')
+    f = open(file_path, 'wb')
     # notice that its been transformed to a sparse matrix
     prm = coo_matrix(prm)
     pickle.dump(prm, f)
     f.close()
+    prm = prm.todense()
     print 'Pearson relate matrix built, time:', time.strftime("%H:%M:%S")
     return prm
+
+
+def search_mov_name(fac, pat, from_year=-1):
+    mnl = fac['mvs_rat']
+    mvsn = fac['mvs_cnt']
+    ret = []
+    rt_n = 0
+    for i in range(mvsn):
+        res__n = re.search(pat, mnl[i][2], re.IGNORECASE)
+        if (res__n is not None) and (uutil.ret_y_mn(mnl[i][2]) > from_year):
+            rt_n += 1
+            if rt_n > 100:
+                continue
+            t_ret = (mnl[i][2], i)
+            ret.append(t_ret)
+    return ret
+
 
 
 if __name__ == '__main__':
     print 'its main'
     l_src_dir = './ml-latest-small/ml-latest-small/'
+    src_dir_20m = './ml-20m/ml-20m/'
     ratings = pd.read_csv(l_src_dir + 'ratings.csv', header=0)
     movies = pd.read_csv(l_src_dir + 'movies.csv', header=0)
 
     factors = factor_builder(ratings, movies)
+
+    """
+    # GUI test
+    """
+    app = wx.App(False)
+    frame = MyGUI.TheFrame(None)
+    panel = MyGUI.ThePanel(frame)
+    panel.mount(factors)
+    frame.Show()
+    app.MainLoop()
+
+
+
+    """
+    # Test for search function
+    """
+    # srchstr = "captain"
+    # result_1 = search_mov_name(factors, srchstr, 2006)
+    # print result_1
+
+
 
     # index_b = 9121
     # print time.strftime("%H:%M:%S")
@@ -428,7 +519,17 @@ if __name__ == '__main__':
     #         print res, i, factors['index_movieNm'][i], factors['movie_years'][i]
     # print time.strftime("%H:%M:%S")
 
-    gm_prm = pearson_relate_matrix(factors, from_year=2006, mad_reb=True)
+    """
+    # Get related movies with a certain movie index
+    """
+    # gm_prm = pearson_relate_matrix(factors, from_year=2006)
+    # query_mv_index = 7660
+    # print factors['index_movieNm'][query_mv_index], factors['mvs_rat'][query_mv_index][0:2]
+    # for ie in range(factors['mvs_cnt']):
+    #     res = gm_prm[query_mv_index, ie]
+    #     if res > 0.5:
+    #         print round(res, 4),  factors['mvs_rat'][ie], ie
+
     # print gm_prm[9114, 9121], factors['index_movieNm'][9114]
     # print gm_prm[9121, 9114], factors['index_movieNm'][9121]
     #

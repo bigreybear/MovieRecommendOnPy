@@ -91,6 +91,24 @@ if __name__ == '__main__':
 
     ar_1 = [0, 3.5, 5.0, 3.5, 0, 3.0, 5.0]
     ar_2 = [0, 3.0, 3.5, 0, 2.0, 2.0, 0]
+
+    """
+    # Test matrix dot plus by numpy
+    """
+    # asc = np.zeros([4,7])
+    # print asc
+    # asc[3][5] = 2
+    # asc[2][1] = 4
+    # print asc
+    # ascd = coo_matrix(asc)
+    # asc = ascd.todense()
+    # print asc
+    # vec = np.zeros([7,1])
+    # print vec
+    # vec[1][0] = 1
+    # print asc, vec
+    # print np.dot(asc, vec)
+
     # ar_1, ar_2, _ = pre_vecs(ar_1, ar_2)
     # print ar_1
     # print ar_2
@@ -99,6 +117,9 @@ if __name__ == '__main__':
     # print range(1,3)
     # print movieRecom.pearson_p34([2.,2.])
 
+    # mvs_rat = [()] * 5
+    # mvs_rat[2] = (12,3,6)
+    # print mvs_rat
 
     # print ac
     # print b
@@ -117,8 +138,8 @@ if __name__ == '__main__':
     # ab = np.zeros((2,3))
     # print ab, type(ab)
 
-    res = mv_year_divide(movies.title)
-    dict_watcher(res)
+    # res = mv_year_divide(movies.title)
+    # dict_watcher(res)
     # if type(123) is int:
     #     print 'ye'
     # count = 0
