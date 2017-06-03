@@ -28,9 +28,13 @@ class ThePanel(guiExample.MyPanel1):
 
     def search_pat(self, event):
         print 'its been son'
+
+        self.m_search_list.Delete(0)
         print self.fet
         res = self.m_search_pat.GetValue()
         print res
         res = movieRecom.search_mov_name(self.fac_ref, res, 2006)
         print res
+        for i in range(len(res)):
+            self.m_search_list.Insert(res[i][0], i)
 
