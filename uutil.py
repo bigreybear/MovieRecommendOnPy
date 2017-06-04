@@ -93,11 +93,16 @@ if __name__ == '__main__':
     ar_1 = [0, 3.5, 5.0, 3.5, 0, 3.0, 5.0]
     ar_2 = [0, 3.0, 3.5, 0, 2.0, 2.0, 0]
 
-    print sorted(ar_1, reverse=True)
+    # print sorted(ar_1, reverse=True)
+    #
+    # ar_1.sort(reverse=True)
+    #
+    # print ar_1
 
-    ar_1.sort(reverse=True)
-
-    print ar_1
+    aaa = np.zeros([3,1])
+    print aaa
+    aaa[2,0] = 3
+    print aaa
 
     """
     # Test matrix dot plus by numpy

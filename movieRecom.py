@@ -95,6 +95,18 @@ def construct_avg_rat(df_ur_rat, factor, mandatery_flash=False):
 
 
 def factor_builder(rat, mvs, mad_reb=False, file_path=None):
+    """
+    It's too late that I find the variable 'factor', is just like a class instance.
+    It can map variables by its name, and can storage multiple type of variables.
+    Seriously, why not use a class at first?
+    And it's not efficient on respect of space. 
+    Some of these vars can be reduced if designed better.
+    :param rat: 
+    :param mvs: 
+    :param mad_reb: if is mandatery to flash
+    :param file_path: 
+    :return: 
+    """
     if file_path is None:
         file_path = 'mid-data/factors.dat'
     print 'Start to build the factors, time:', time.strftime("%H:%M:%S")
@@ -415,7 +427,7 @@ def pearson_relate_matrix(fac, mad_reb=False, from_year=-1, filename=None, filed
     if (filedir is not None) and (filename is not None):
         file_path = filedir + '/' + filename + '.dat'
     else:
-        file_path = 'mid-data/prm-bt2006.dat'
+        file_path = 'mid-data/prm-bt1998.dat'
 
     print 'Start to build the pearson relate matrix, time:', time.strftime("%H:%M:%S")
     if os.path.isfile(file_path) and not mad_reb:
@@ -484,7 +496,7 @@ def search_mov_name(fac, pat, from_year=-1):
     return ret
 
 
-if __name__ == '__main__':
+def main():
     print 'its main'
     l_src_dir = './ml-latest-small/ml-latest-small/'
     src_dir_20m = './ml-20m/ml-20m/'
@@ -492,18 +504,20 @@ if __name__ == '__main__':
     movies = pd.read_csv(l_src_dir + 'movies.csv', header=0)
 
     factors = factor_builder(ratings, movies)
-
+    prm = pearson_relate_matrix(factors, filedir='mid-data', filename='prm-bt2006')
     """
     # GUI test
     """
     app = wx.App(False)
     frame = MyGUI.TheFrame(None)
     panel = MyGUI.ThePanel(frame)
-    panel.mount(factors)
+    panel.mount(factors, prm=prm)
     frame.Show()
     app.MainLoop()
 
 
+if __name__ == '__main__':
+    main()
 
     """
     # Test for search function

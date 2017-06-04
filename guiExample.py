@@ -105,6 +105,7 @@ class MyPanel1(wx.Panel):
         self.m_but_know.Bind(wx.EVT_BUTTON, self.thats_it)
         self.m_but_like.Bind(wx.EVT_BUTTON, self.like_it)
         self.m_but_hate.Bind(wx.EVT_BUTTON, self.hate_it)
+        self.m_but_more.Bind(wx.EVT_BUTTON, self.want_more)
 
     def __del__(self):
         pass
@@ -120,6 +121,9 @@ class MyPanel1(wx.Panel):
         event.Skip()
 
     def hate_it(self, event):
+        event.Skip()
+
+    def want_more(self, event):
         event.Skip()
 
 
