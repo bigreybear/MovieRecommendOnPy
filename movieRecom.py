@@ -504,7 +504,7 @@ def main():
     movies = pd.read_csv(l_src_dir + 'movies.csv', header=0)
 
     factors = factor_builder(ratings, movies)
-    prm = pearson_relate_matrix(factors, filedir='mid-data', filename='prm-bt2006')
+    prm = pearson_relate_matrix(factors, filedir='mid-data', filename='prm-bt1998')
     """
     # GUI test
     """

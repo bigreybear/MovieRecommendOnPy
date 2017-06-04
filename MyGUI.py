@@ -107,7 +107,24 @@ class ThePanel(guiExample.MyPanel1):
 
     def like_it(self, event):
         nms = self.m_recom_list.GetFirstSelected()
+        m_ind =  self.recommend_out[nms]
         print nms
+        if m_ind not in self.marked_mov_index:
+            self.marked_mov_index.append(m_ind)
+        self.marked_mov[m_ind, 0] = 4
+        self.marked_cnt += 1
+        self.rearrange_out_list()
+
+    def hate_it(self, event):
+        nms = self.m_recom_list.GetFirstSelected()
+        m_ind =  self.recommend_out[nms]
+        print nms
+        if m_ind not in self.marked_mov_index:
+            self.marked_mov_index.append(m_ind)
+        self.marked_mov[m_ind, 0] = -0.5
+        self.marked_cnt += 1
+        self.rearrange_out_list()
+
 
     def thats_it(self, event):
         nms = self.m_search_list.GetSelection()
@@ -118,6 +135,7 @@ class ThePanel(guiExample.MyPanel1):
         self.marked_mov[self.search_out[nms][1], 0] = 5
         print self.marked_mov_index
         self.rearrange_out_list()
+
 
     def write_search_list(self):
         """
@@ -132,6 +150,7 @@ class ThePanel(guiExample.MyPanel1):
         for i in range(len(self.search_out)):
             self.m_search_list.Insert(self.search_out[i][0], self.m_search_list.GetCount())
 
+
     def write_recom_list(self):
         """
         A cell of list is a index of the movie
@@ -140,10 +159,9 @@ class ThePanel(guiExample.MyPanel1):
         self.m_recom_list.DeleteAllItems()
         rd_list = self.recommend_out
         for i in range(len(rd_list)):
-            if self.recommend_out[i] in self.marked_mov_index:
-                continue
             self.m_recom_list.InsertStringItem(i, self.fac_ref['index_movieNm'][rd_list[i]])
             self.m_recom_list.SetStringItem(i, 1, str(self.fac_ref['mvs_rat'][rd_list[i]][0]))
+
 
     def rearrange_out_list(self):
         """
@@ -151,24 +169,56 @@ class ThePanel(guiExample.MyPanel1):
         Notice that prm(Pearson Relation Matrix) doesn't include any movie early than self.from_year
         :return: 
         """
+        unsort_rec_list = []
+
+        del self.recommend_out
+        self.recommend_out = []
+        self.related_mov = np.dot(self.prm_ref, self.marked_mov)
+        for i in range(self.movie_cnt):
+            if self.related_mov[i, 0] > 0:
+                # print i, self.related_mov[i, 0], self.fac_ref['index_movieNm'][i]
+                if i not in self.marked_mov_index:
+                    unsort_rec_list.append((i, self.related_mov[i, 0], self.movie_index_to_year(i)))
+        # unsort_rec_list.sort(key=lambda k: k[2], reverse=True)
+        unsort_rec_list.sort(key=lambda k: k[1], reverse=True)
+
         if self.marked_cnt > 5:
             """
             # Output is all depend on marked movies
             """
+            for i in range(50):
+                if i >= len(unsort_rec_list):
+                    break
+                if self.movie_index_to_year(unsort_rec_list[i][0]) > self.limit_year:
+                    self.recommend_out.append(unsort_rec_list[i][0])
+                print unsort_rec_list[i][1]
             pass
+
         elif self.marked_cnt > 0:
             """
             # Output is a remix
             """
-            self.related_mov = np.dot(self.prm_ref, self.marked_mov)
-            for i in range(self.movie_cnt):
-                if self.related_mov[i, 0] != 0:
-                    print i, self.related_mov[i, 0], self.fac_ref['index_movieNm'][i]
+            for i in range(50):
+                if i%4 == 1:
+                    self.recommend_out.append(self.popular_mov[i][0])
+                elif i%4 == 2:
+                    self.recommend_out.append(self.classic_mov[i][0])
+                else:
+                    if i >= len(unsort_rec_list):
+                        break
+                    if self.movie_index_to_year(unsort_rec_list[i][0]) > self.limit_year:
+                        self.recommend_out.append(unsort_rec_list[i][0])
             pass
         else:
             """
             # Output is random
             """
+            seeds = random.randint(1,3)
+            for i in range(50):
+                if i%seeds == 1:
+                    self.recommend_out.append(self.popular_mov[i][0])
+                else:
+                    self.recommend_out.append(self.classic_mov[i][0])
             pass
 
         """
@@ -176,6 +226,7 @@ class ThePanel(guiExample.MyPanel1):
         """
         self.check_out_list()
         self.write_search_list()
+        self.write_recom_list()
         pass
 
     def check_out_list(self):
@@ -195,12 +246,16 @@ class ThePanel(guiExample.MyPanel1):
     def want_more(self, event):
         """
         In fact, its a test function button
+        Now to restart the recommendation
         :param event: 
         :return: 
         """
-        del self.search_out
-        self.search_out = []
-        self.write_search_list()
+        del self.marked_mov
+        del self.marked_mov_index
+        self.marked_mov = np.zeros([self.movie_cnt, 1])
+        self.marked_mov_index = []
+        self.marked_cnt = 0
+        self.rearrange_out_list()
 
 
 if __name__ == "__main__":
