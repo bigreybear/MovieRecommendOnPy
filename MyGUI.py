@@ -107,7 +107,7 @@ class ThePanel(guiExample.MyPanel1):
 
     def like_it(self, event):
         nms = self.m_recom_list.GetFirstSelected()
-        m_ind =  self.recommend_out[nms]
+        m_ind = self.recommend_out[nms]
         print nms
         if m_ind not in self.marked_mov_index:
             self.marked_mov_index.append(m_ind)
@@ -117,7 +117,7 @@ class ThePanel(guiExample.MyPanel1):
 
     def hate_it(self, event):
         nms = self.m_recom_list.GetFirstSelected()
-        m_ind =  self.recommend_out[nms]
+        m_ind = self.recommend_out[nms]
         print nms
         if m_ind not in self.marked_mov_index:
             self.marked_mov_index.append(m_ind)
@@ -175,7 +175,7 @@ class ThePanel(guiExample.MyPanel1):
         self.recommend_out = []
         self.related_mov = np.dot(self.prm_ref, self.marked_mov)
         for i in range(self.movie_cnt):
-            if self.related_mov[i, 0] > 0:
+            if (self.related_mov[i, 0] > 0) and (self.movie_index_to_year(i) > self.limit_year):
                 # print i, self.related_mov[i, 0], self.fac_ref['index_movieNm'][i]
                 if i not in self.marked_mov_index:
                     unsort_rec_list.append((i, self.related_mov[i, 0], self.movie_index_to_year(i)))
@@ -200,9 +200,11 @@ class ThePanel(guiExample.MyPanel1):
             """
             for i in range(50):
                 if i%4 == 1:
-                    self.recommend_out.append(self.popular_mov[i][0])
+                    if (self.movie_index_to_year(self.popular_mov[i][0]) > self.limit_year) and (self.popular_mov[i][0] not in self.marked_mov_index):
+                        self.recommend_out.append(self.popular_mov[i][0])
                 elif i%4 == 2:
-                    self.recommend_out.append(self.classic_mov[i][0])
+                    if (self.movie_index_to_year(self.classic_mov[i][0]) > self.limit_year) and (self.classic_mov[i][0] not in self.marked_mov_index):
+                        self.recommend_out.append(self.classic_mov[i][0])
                 else:
                     if i >= len(unsort_rec_list):
                         break
